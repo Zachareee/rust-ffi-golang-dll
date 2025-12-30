@@ -2,11 +2,14 @@ package main
 
 // #include <stdlib.h>
 import "C"
-import "unsafe"
+import (
+	"time"
+	"unsafe"
+)
 
 //export GetString
 func GetString() *C.char {
-	return C.CString("Hello World")
+	return C.CString(time.Now().Local().String())
 }
 
 //export FreeString
