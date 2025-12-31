@@ -22,12 +22,14 @@ func FreeString(str *C.char) {
 
 //export GetStruct
 func GetStruct() (count int32, strings **C.char) {
-	s := []*C.char{
-		C.CString("Germany"),
-		C.CString("Korea"),
-		C.CString("Japan"),
+	countries := []string{"Germany", "Korea", "Japan"}
+	count = int32(len(countries))
+	s := make([]*C.char, 0, count)
+
+	for _, str := range countries {
+		s = append(s, C.CString(str))
 	}
-	count = int32(len(s))
+
 	strings = unsafe.SliceData(s)
 	pinner.Pin(strings)
 	return
