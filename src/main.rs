@@ -1,8 +1,14 @@
+use std::error::Error;
+
 mod dllib;
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     let lib_path = "./test.dll";
-    let library = dllib::load(lib_path);
+    unsafe {
+        let library = dllib::load(lib_path)?;
 
-    println!("{}", library.get_string());
+        println!("{}", library.get_string()?);
+        println!("{:?}", library.get_str_arr()?);
+    };
+    Ok(())
 }
