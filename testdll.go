@@ -35,6 +35,7 @@ func GetStruct() (count int32, strings **C.char) {
 	return
 }
 
+//export FreeStruct
 func FreeStruct() {
 	pinner.Unpin()
 }

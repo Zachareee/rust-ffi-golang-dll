@@ -3,7 +3,7 @@ use std::{
     ffi::{CStr, c_char},
 };
 
-use libloading::{AsFilename, Library, Symbol};
+use libloading::{AsFilename, Library};
 
 type DLLString = *const c_char;
 
@@ -17,6 +17,7 @@ pub struct DLLStruct {
 }
 
 type StructSupplier = unsafe extern "C" fn() -> DLLStruct;
+type SideEffect = extern "C" fn() -> ();
 type DLLResult<T> = Result<T, Box<dyn Error>>;
 
 pub struct DLLib {
@@ -37,7 +38,7 @@ impl DLLib {
         let raw_str = lambda();
         let c_str = unsafe { CStr::from_ptr(raw_str) }.to_str()?.to_owned();
         unsafe {
-            let free_string: Symbol<StringConsumer> = self.library.get(b"FreeString")?;
+            let free_string = self.library.get::<StringConsumer>(b"FreeString")?;
             free_string(raw_str);
         }
 
@@ -46,7 +47,7 @@ impl DLLib {
 
     pub unsafe fn get_string(&self) -> DLLResult<String> {
         unsafe {
-            let get_string: Symbol<StringSupplier> = self.library.get(b"GetString")?;
+            let get_string = self.library.get::<StringSupplier>(b"GetString")?;
             self.create_string(|| get_string())
         }
     }
@@ -55,11 +56,12 @@ impl DLLib {
         let mut v: Vec<String> = Vec::new();
 
         unsafe {
-            let get_struct: Symbol<StructSupplier> = self.library.get(b"GetStruct")?;
+            let get_struct = self.library.get::<StructSupplier>(b"GetStruct")?;
             let s = get_struct();
             for i in 0..s.count {
                 v.push(self.create_string(|| *s.strings.offset(i as isize))?);
             }
+            self.library.get::<SideEffect>(b"FreeStruct")?();
         }
 
         Ok(v)
