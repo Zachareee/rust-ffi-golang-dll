@@ -9,6 +9,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         println!("{}", library.get_string()?);
         println!("{:?}", library.get_str_arr()?);
+        library.print_string(c"String from Rust to Go").unwrap();
     };
     Ok(())
 }

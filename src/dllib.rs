@@ -11,12 +11,12 @@ type StringSupplier = unsafe extern "C" fn() -> DLLString;
 type StringConsumer = unsafe extern "C" fn(DLLString);
 
 #[repr(C)]
-pub struct DLLStruct {
+pub struct DLLArray {
     count: i32,
     strings: *const DLLString,
 }
 
-type StructSupplier = unsafe extern "C" fn() -> DLLStruct;
+type ArraySupplier = unsafe extern "C" fn() -> DLLArray;
 type SideEffect = extern "C" fn() -> ();
 type DLLResult<T> = Result<T, Box<dyn Error>>;
 
@@ -56,14 +56,21 @@ impl DLLib {
         let mut v: Vec<String> = Vec::new();
 
         unsafe {
-            let get_struct = self.library.get::<StructSupplier>(b"GetStruct")?;
-            let s = get_struct();
+            let get_array = self.library.get::<ArraySupplier>(b"GetArray")?;
+            let s = get_array();
             for i in 0..s.count {
                 v.push(self.create_string(|| *s.strings.offset(i as isize))?);
             }
-            self.library.get::<SideEffect>(b"FreeStruct")?();
+            self.library.get::<SideEffect>(b"Uninit")?();
         }
 
         Ok(v)
+    }
+
+    pub unsafe fn print_string(&self, str: &CStr) -> DLLResult<()> {
+        unsafe {
+            self.library.get::<StringConsumer>(b"PrintString")?(str.as_ptr());
+        }
+        Ok(())
     }
 }
