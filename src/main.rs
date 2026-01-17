@@ -1,4 +1,4 @@
-use std::{error::Error, fs};
+use std::{error::Error, fmt::Debug, fs, time::SystemTime};
 
 mod dllib;
 
@@ -7,7 +7,7 @@ const CREDS_PATH: &str = "./credentials.json";
 fn main() -> Result<(), Box<dyn Error>> {
     let lib_path = "./test.dll";
 
-    let creds = fs::read_to_string(CREDS_PATH).unwrap_or_default();
+    let mut creds = fs::read_to_string(CREDS_PATH).unwrap_or_default();
 
     unsafe {
         let library = dllib::load(lib_path)?;
@@ -33,13 +33,35 @@ fn main() -> Result<(), Box<dyn Error>> {
             match library.extract_credentials(&e) {
                 Ok(token) => {
                     println!("Authenticated");
-                    let _ = fs::write(&CREDS_PATH, token);
+                    let _ = fs::write(&CREDS_PATH, &token);
+                    creds = token;
                 }
                 Err(err) => println!("{err}"),
             }
         } else {
             println!("Authenticated")
         }
+
+        // if let Err(e) = library.upload(
+        //     &creds,
+        //     "third test",
+        //     SystemTime::now()
+        //         .duration_since(SystemTime::UNIX_EPOCH)
+        //         .unwrap_or_default()
+        //         .as_secs(),
+        //     "LETS GO".into(),
+        // ) {
+        //     println!("Error occured: {e}");
+        // }
+
+        match library.read_cloud(&creds) {
+            Ok(v) => {
+                println!("Vector: {v:?}");
+            }
+            Err(e) => println!("Error: {e}"),
+        }
+
+        library.download(&creds, "third test");
     };
     Ok(())
 }
