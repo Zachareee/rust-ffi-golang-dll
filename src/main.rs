@@ -1,4 +1,4 @@
-use std::{error::Error, fmt::Debug, fs, time::SystemTime};
+use std::{error::Error, fs, time::SystemTime};
 
 mod dllib;
 
@@ -9,59 +9,64 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut creds = fs::read_to_string(CREDS_PATH).unwrap_or_default();
 
-    unsafe {
-        let library = dllib::load(lib_path)?;
+    let library = unsafe { dllib::load(lib_path) }?;
 
-        let tup = library.validate(&creds, "http://localhost");
+    let tup = unsafe { library.validate(&creds, "http://localhost") };
 
-        if let Some(err) = tup.1 {
-            println!("Error found: {err}");
+    if let Some(err) = tup.1 {
+        println!("Error found: {err}");
 
-            println!("{}", tup.0.unwrap());
-            let code = {
-                use std::io::stdin;
-                let mut s = String::new();
-                stdin().read_line(&mut s)?;
-                s
-            };
+        println!("{}", tup.0.unwrap());
+        let code = {
+            use std::io::stdin;
+            let mut s = String::new();
+            stdin().read_line(&mut s)?;
+            s
+        };
 
-            let e = code
-                .strip_suffix("\r\n")
-                .or(code.strip_suffix("\n"))
-                .unwrap();
+        let e = code
+            .strip_suffix("\r\n")
+            .or(code.strip_suffix("\n"))
+            .unwrap();
 
-            match library.extract_credentials(&e) {
-                Ok(token) => {
-                    println!("Authenticated");
-                    let _ = fs::write(&CREDS_PATH, &token);
-                    creds = token;
-                }
-                Err(err) => println!("{err}"),
+        match unsafe { library.extract_credentials(&e) } {
+            Ok(token) => {
+                println!("Authenticated");
+                let _ = fs::write(&CREDS_PATH, &token);
+                creds = token;
             }
-        } else {
-            println!("Authenticated")
+            Err(err) => println!("{err}"),
         }
+    } else {
+        println!("Authenticated")
+    }
 
-        // if let Err(e) = library.upload(
-        //     &creds,
-        //     "third test",
-        //     SystemTime::now()
-        //         .duration_since(SystemTime::UNIX_EPOCH)
-        //         .unwrap_or_default()
-        //         .as_secs(),
-        //     "LETS GO".into(),
-        // ) {
-        //     println!("Error occured: {e}");
-        // }
+    println!("{:?}", unsafe { library.info() });
 
-        match library.read_cloud(&creds) {
-            Ok(v) => {
-                println!("Vector: {v:?}");
-            }
-            Err(e) => println!("Error: {e}"),
+    if let Err(e) = unsafe {
+        library.upload(
+            &creds,
+            "new file",
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
+            "file".into(),
+        )
+    } {
+        println!("Error occured: {e}");
+    }
+
+    match unsafe { library.read_cloud(&creds) } {
+        Ok(v) => {
+            println!("Vector: {v:?}");
         }
+        Err(e) => println!("Error: {e}"),
+    }
 
-        library.download(&creds, "third test");
+    match unsafe { library.download(&creds, "new file") } {
+        Err(err) => println!("{err}"),
+        Ok(v) => println!("{:?}", String::try_from(v)),
     };
     Ok(())
 }
