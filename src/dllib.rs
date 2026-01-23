@@ -60,7 +60,7 @@ impl DLLib {
     }
 
     pub unsafe fn info(&self) -> Info {
-        let (name, description, author, icon_url) = unsafe {
+        let ptr = unsafe {
             self.library
                 .get::<unsafe extern "C" fn() -> (DLLString, DLLString, DLLString, DLLString)>(
                     b"info",
@@ -68,14 +68,26 @@ impl DLLib {
                 .expect("info function not found")()
         };
 
-        unsafe {
+        let (name, description, author, icon_url) = ptr;
+
+        let info = unsafe {
             Info {
                 name: self.create_string(name).unwrap(),
                 description: self.create_string(description).unwrap(),
                 author: self.create_string(author).unwrap(),
                 icon_url: self.create_string(icon_url).unwrap(),
             }
-        }
+        };
+
+        unsafe {
+            self.library
+                .get::<unsafe extern "C" fn((DLLString, DLLString, DLLString, DLLString))>(
+                    b"free_info",
+                )
+                .expect("free_info function not found")(ptr)
+        };
+
+        info
     }
 
     pub unsafe fn validate(

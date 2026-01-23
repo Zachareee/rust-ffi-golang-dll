@@ -41,17 +41,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Authenticated")
     }
 
-    println!("{:?}", unsafe { library.info() });
+    let info = unsafe { library.info() };
+
+    println!("{:?}", info);
+
+    let filename = "upload.zip";
 
     if let Err(e) = unsafe {
         library.upload(
             &creds,
-            "new file",
+            &filename,
             SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs(),
-            "file".into(),
+            fs::read(&filename).unwrap(),
         )
     } {
         println!("Error occured: {e}");
@@ -64,9 +68,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         Err(e) => println!("Error: {e}"),
     }
 
-    match unsafe { library.download(&creds, "new file") } {
+    match unsafe { library.download(&creds, &filename) } {
         Err(err) => println!("{err}"),
-        Ok(v) => println!("{:?}", String::try_from(v)),
+        Ok(v) => fs::write("downloaded.zip", v).unwrap(),
     };
     Ok(())
 }
